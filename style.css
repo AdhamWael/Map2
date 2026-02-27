@@ -20,6 +20,18 @@ html.lenis body {
     pointer-events: none;
 }
 
+#scroll-progress {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 4px;
+    background: var(--c-accent);
+    z-index: 9999;
+    width: 0%;
+    box-shadow: 0 0 10px var(--c-accent);
+    pointer-events: none;
+}
+
 :root {
     --c-bg: #222222;
     --c-surface: #2d2d2d;
@@ -89,13 +101,48 @@ body.theme-minimal {
 }
 
 /* Simulated Thematic Layers */
-body.layer-sites-active .region {
-    filter: drop-shadow(0 0 2px var(--c-gold));
+body.layer-sites-active #sites-layer {
+    display: block !important;
 }
 
-body.layer-routes-active #egypt-map {
-    border: 2px solid rgba(var(--c-accent-rgb), 0.2);
-    border-radius: 50%;
+body.layer-routes-active #routes-layer {
+    display: block !important;
+}
+
+.route-path {
+    fill: none;
+    stroke: var(--c-accent);
+    stroke-width: 2px;
+    stroke-dasharray: 10, 10;
+    stroke-dashoffset: 200;
+    opacity: 0;
+    transition: opacity 1s var(--ease);
+}
+
+body.layer-routes-active .route-path {
+    opacity: 0.6;
+    animation: flowRoute 10s linear infinite;
+}
+
+@keyframes flowRoute {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.site-marker {
+    fill: var(--c-gold);
+    stroke: #fff;
+    stroke-width: 1px;
+    filter: drop-shadow(0 0 5px var(--c-gold));
+    cursor: pointer;
+    transition: all 0.4s var(--ease);
+}
+
+.site-marker:hover {
+    r: 8;
+    fill: #fff;
+    filter: drop-shadow(0 0 15px var(--c-gold));
 }
 
 /* Specific highlight for regions with archaeological significance when the layer is on */
