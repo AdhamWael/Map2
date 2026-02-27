@@ -1045,19 +1045,27 @@ function initialize() {
         }
         if (typeof Lenis !== 'undefined') {
             window.lenis = new Lenis({
-                lerp: 0.05,             // Maximum smoothness (floaty & responsive)
-                duration: 0.8,          // Snappy response to start/stop
-                touchMultiplier: 1.2,
+                lerp: 0.05,             // More fluid for premium feel
+                duration: 1.5,          // Slower, cinematic scroll
+                touchMultiplier: 1.5,
                 wheelMultiplier: 1,
                 syncTouch: true,
                 smoothWheel: true,
                 autoRaf: false          // Handled by our own RAF for better sync
             });
 
+            const scrollProgress = document.getElementById('scroll-progress');
+
             // Disable expensive CSS during high-velocity scroll
-            window.lenis.on('scroll', ({ velocity }) => {
-                const isHeavyScroll = Math.abs(velocity) > 8;
+            window.lenis.on('scroll', (e) => {
+                const isHeavyScroll = Math.abs(e.velocity) > 8;
                 document.body.classList.toggle('is-scrolling', isHeavyScroll);
+
+                // Global Scroll Progress Bar
+                if (scrollProgress) {
+                    const scrollPercent = (e.scroll / (document.body.scrollHeight - window.innerHeight)) * 100;
+                    scrollProgress.style.width = scrollPercent + '%';
+                }
             });
 
             function raf(time) {
@@ -1260,7 +1268,6 @@ function initialize() {
                     const d = regionsData[path.id];
                     if (d && d[currentMode]) {
                         const data = d[currentMode];
-                        // Demo data for Symbol/Ruler if missing
                         const symbol = data.symbol || (currentMode === 'ancient' ? '𓋹' : '🏛');
                         const ruler = data.ruler || (currentMode === 'ancient' ? 'فرعون النيل' : 'حاكم الإقليم');
 
@@ -1278,8 +1285,14 @@ function initialize() {
                         heroBubble.style.borderRadius = '20px';
                         heroBubble.style.borderColor = 'var(--c-accent)';
 
-                        // Region glow effect
-                        path.style.filter = 'drop-shadow(0 0 12px var(--c-accent))';
+                        // Enhanced GSAP animation for region
+                        gsap.to(path, {
+                            scale: 1.02,
+                            strokeWidth: 2,
+                            stroke: '#fff',
+                            duration: 0.3,
+                            ease: "power2.out"
+                        });
                     }
                 });
                 path.addEventListener('mouseleave', () => {
@@ -1287,7 +1300,14 @@ function initialize() {
                     heroBubble.style.padding = '10px 24px';
                     heroBubble.style.borderRadius = '100px';
                     heroBubble.style.borderColor = 'var(--c-purple)';
-                    path.style.filter = '';
+
+                    gsap.to(path, {
+                        scale: 1,
+                        strokeWidth: 0.6,
+                        stroke: 'var(--c-border)',
+                        duration: 0.3,
+                        ease: "power2.inOut"
+                    });
                 });
             });
 
@@ -1318,6 +1338,35 @@ function initialize() {
                     setBubble(btn.textContent.trim(), 'var(--c-gold)', '#000');
                 });
                 btn.addEventListener('mouseleave', resetBubble);
+            });
+
+            // New: Site Markers Interactivity
+            document.querySelectorAll('.site-marker').forEach(marker => {
+                marker.addEventListener('mouseenter', () => {
+                    const name = marker.getAttribute('data-name') || 'موقع أثري';
+                    setBubble(`
+                        <div style="font-size:0.9rem; font-weight:800; color:var(--c-gold);">
+                            📍 ${name}
+                        </div>
+                        <div style="font-size:0.7rem; opacity:0.7; margin-top:4px;">
+                            موقع تاريخي رئيسي
+                        </div>
+                    `, 'var(--c-surface)', 'var(--c-text)');
+
+                    gsap.to(marker, {
+                        r: 8,
+                        fill: '#fff',
+                        duration: 0.3
+                    });
+                });
+                marker.addEventListener('mouseleave', () => {
+                    resetBubble();
+                    gsap.to(marker, {
+                        r: 5,
+                        fill: 'var(--c-gold)',
+                        duration: 0.3
+                    });
+                });
             });
         }
     } catch (e) {
@@ -1366,11 +1415,11 @@ function initGSAPAnimations() {
         const type = el.dataset.reveal;
         const config = {
             opacity: 1,
-            duration: 1.2,
-            ease: "power3.out",
+            duration: 1.5,
+            ease: "expo.out",
             scrollTrigger: {
                 trigger: el,
-                start: "top 85%",
+                start: "top 88%",
                 toggleActions: "play none none none"
             }
         };
@@ -1383,6 +1432,30 @@ function initGSAPAnimations() {
         if (type === 'scale') config.scale = 1;
 
         gsap.to(el, config);
+    });
+
+    // NEW: Footer Background Glyphs Parallax
+    gsap.to('.footer-bg-glyphs', {
+        yPercent: -20,
+        ease: "none",
+        scrollTrigger: {
+            trigger: '.site-footer',
+            start: "top bottom",
+            end: "bottom top",
+            scrub: true
+        }
+    });
+
+    // NEW: Section Background Glows Parallax
+    gsap.to('.journey-background-glow', {
+        yPercent: 15,
+        ease: "none",
+        scrollTrigger: {
+            trigger: '.era-journey-section',
+            start: "top bottom",
+            end: "bottom top",
+            scrub: true
+        }
     });
 
     // NEW: 3D Tilt for interactive cards on hover
@@ -1842,6 +1915,21 @@ window.toggleThematicLayer = function (layerId) {
     // Toggle a class on the map/body to trigger visual changes via CSS
     const layerClass = "layer-" + layerId + "-active";
     document.body.classList.toggle(layerClass);
+
+    // Toggle SVG layers
+    const layerEl = document.getElementById(layerId + '-layer');
+    if (layerEl) {
+        layerEl.classList.toggle('hidden');
+        if (!layerEl.classList.contains('hidden')) {
+            gsap.from(layerEl.children, {
+                opacity: 0,
+                scale: 0,
+                stagger: 0.1,
+                duration: 0.5,
+                ease: "back.out(1.7)"
+            });
+        }
+    }
 
     // Update description for first-time activation
     const desc = document.getElementById("layer-desc");
